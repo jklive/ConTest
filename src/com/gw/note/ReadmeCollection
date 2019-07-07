@@ -1,0 +1,42 @@
+
+Java集合分为两大类
+
+-------------》单列集合 Collection
+
+Collection下分 List 和 Set
+List常见的实现类有Arraylist,LinkedList,Vector
+
+Set常见的实现类有HashSet,TreeSet..
+
+Collection 遍历元素用迭代器
+iterator hasNext()用来判断是否是否有下一个元素 next()，指针下移，并返回上一个元素
+
+--------》List集合
+List集合有序，即添加顺序和取出顺序一致，并且可重复，支持索引
+
+--------》ArrayList底层结构加源码
+底层维护了一个Object类型的数组，ArrayList和vertor基本一致，ArrayList底层不安全，vertor底层有synchronized
+ArrayList当创建对象时，添加元素时初始容量为10，扩容机制添加元素时，先判断是否需要扩容，不需要则直接添加元素到合适位置，扩容时为扩一半取整，10->15->22
+
+--------》LinkedList底层
+LinkedList底层维护双向列表，底层First和Last分别指向首节点和尾节点，由于是双向列表，所依增删效率较高
+查询效率不如ArrayList
+
+--------》
+Set集合无序，即添加顺序和取出顺序不一致，没有索引，不可以有重复元素，所以NULL值也只有一个
+List和Set一样，都是Collection 的子接口，Collection没有直接的实现类
+
+--------》HashSet源码及底层分析
+
+HashSet底层其实就是HashMap
+HashSet底层添加原理，先求出要添加元素的Hash值，在经过计算得到一个索引，若该索引处没有元素则直接填入，若有元素
+则用equals比较是否相等，相等则不要，不等则以列表的形式拼接在该位置处，可以重写equals方法用来判断属性值是否相等
+
+--------》TreeSet底层也是TreeMap,追源码可得
+TreeMap底层是一颗红黑树，只要是数结构，就有序，默认是自然排序即Comparable 的CompareTo方法 ，不能有null值
+
+
+-------------》多列集合 Map
+
+存值均为K-V键值对，常见的实现类有HashMap,TreeMap,properties,HashTable,ConcurrentHashMap
+

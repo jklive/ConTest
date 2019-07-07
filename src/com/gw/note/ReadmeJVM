@@ -1,0 +1,150 @@
+---》 JVM位置：
+JVM : Java Virtual Machine JVM是运行在操作系统之上的，和硬件体系没意义直接的交互
+
+---》 JVM 类加载器子系统
+
+类加载器的作用就是将.class的字节码文件加载到内存中生成模板，只负责加载，是否执行根据Execution Engine执行引擎决定
+
+---》 类加载器细分四类
+1.Bootstrap Class Loader 启动类加载器 底层是C++ 加载Java出默认的类
+2.Execution Class Loader 扩展类加载器 底层是Java 加载Java后来迭代更新的各种扩展类
+3.APPClassLoader 应用程序（系统）类加载器 加载各种自定义的类 这三个是一级一级的父子关系
+4.继承java.lang.Classloader 自定义类加载器
+
+sun.misc.launcher  Java虚拟机的入口
+
+---》 双亲委派机制
+
+当一个类收到了类加载请求，他不会自己来，会先传给父类，一级一级，即所有的类加载请求都是先BootstrapClassloader
+先处理，自己无法处理这个加载请求时，才会传向下一级，一级一级往下传递，都解决不来，报ClassNofoundException
+
+好处是比如String类，由于从启动类加载器先开始执行，所以大家使用的String都是同一个而不是大家各自自定义
+
+
+---》 Execution Engine（执行引擎） 负责解释命令，将命令交给操作系统执行
+
+Native interface 本地方法接口 是Java为了融合不同的编程语言为JAVA所用
+在 Native Method stack 本地方法栈中登记native方法，在执行时加载本地方法库 native libraries
+
+---》 程序计数器即PC寄存器  Program Counter Machine
+
+程序计数器内存区域很小，几乎可以忽略不计，作用就是用来存储下一条指令的地址，即将要执行的下一条命令
+就是一个线程私有的运行时的指示器
+
+---》 方法区 Method Area
+
+方法区用来存放公共的东西，例如类的模板信息，静态域，字符串常量池都在，是供个线程共享的内存区域
+在java7叫永久代 （PermGen Space） 在java8叫元空间（Metaspace）
+
+---》 栈 （stack）
+栈也叫栈内存，主管线程的运行，栈是根据线程的创建而创建，线程的一个方法即栈里的一个栈帧，执行完毕，栈帧销毁
+线程执行完毕，这个栈也随之消亡，生命周期和线程一样，是线程私有的
+
+八种基本类型的变量和引用和实例方法都是在栈里
+
+---》 栈溢出错误：java.lang.StackOverFlowError
+
+---》 栈运行原理
+栈帧执行先进后出的原则
+
+每一个方法执行的时候都会创建一个栈帧，记录各种信息，一个方法从调用到执行完毕的过程，
+就对应一个栈帧从入栈到出栈的过程，栈的大小约等于1mb
+
+---》 堆 （heap）java8以后
+
+一个JVM实例是存在一个堆内存，内存大小可以通过 Xms Xmx 调节
+堆中存放所有新new出来的对象
+
+
+逻辑上分类：
+->新生区 Young Generation space  1/3
+   --> 伊甸区 Eden Space  8
+   --> 幸存者0区 survivor 0 space  1 又叫from survivor
+   --> 幸存者1区 survivor 1 space  1 又叫to survivor
+
+->养老区 Tenure Generation space  2/3
+
+->元空间 Metaspace  物理上不存在
+
+---》堆内存不够的错误 java.lang.OutOfMemoryError : java heap space
+
+原因有二：java虚拟机堆内存不够，可以通过-Xms -Xmx 来设置
+代码中创建了大量大对象，迟迟不能被GC机制回收
+例1024*1024*888的byte型数组
+---》JVM堆运行原理
+
+假设对象不断的被创建---，Eden Space会满，触发Minor GC进行清理，存活的被放进from survivor区
+第二次Eden space满的时候，会和from survivor 中的一起清理，存活的几个若满足15次，则移入老年区，不能满足
+放入To survivor 区，然后from survivor 和 To survivor 进行交换，交换后清理Eden space 和 from survivor,
+To survivor 变成了空的，以此类推，每次在GC中存活下来记一次，
+15次后该对象移入养老区 Tenure Generation Space 当养老区满了的时候，会调用Major GC来进行清理
+若执行清理后内存不够，则报java.lang.OutOfMemoryError: java heap space
+
+不同对象生命周期不同，98%是临时对象，都会被GC清理销毁
+
+实际而言，方法区和堆一样，是线程共享的内存资源，java本身携带的Classes,Interface 这些元数据也在方法区
+
+---》GC JVM垃圾回收机制，Java Garbage Collection
+
+Minor GC作用于新生区  Major GC 作用于养老区
+
+---》堆内存调优简介
+
+-Xms 堆初始内存数值 一般是物理内存的1/64
+-Xmx 堆最大内存数值 一般是物理内存的1/4
+-XX: +PrintGCDetails 打印详细GC工作日志
+
+例： -Xms1024m -Xmx1024m -XX:+PrintGCDetails
+
+---》GC垃圾回收机制 Java Garbage Collection
+GC 垃圾回收机制是分代收集算法，次数上频繁收集新生区，较少收集养老区，基本不动元数据
+
+---》GC四大算法
+
+-->引用计数法
+每有一个引用指向实例对象，计数加一，这种已过时，JVM一般不采用这种方式
+原因： 计数器也消耗资源，主要处理不了循环引用问题
+
+-->复制算法
+作用于新生代的Minor GC 采用复制算法
+即第一次Eden Space 满了触发GC机制，清理后存活的对象依据年龄移入养老区或from survivor区
+下一个Eden Space满了之后，GC会同时清理Eden Space 和form survivor区，将清理后存活的复制到
+To survivor区，并将年龄加一，满15移入养老区，清空Eden Space 和 From survivor区，接着将from survivor 和 To survivor
+交换，to survivor 为空
+
+优点：复制算法即将还活着的对象复制到另一块区域，复制算法不产生内存碎片，且速度较快
+缺点：复制算法是将存活的对象整个复制，若存活率低适用，所以适合新生区，98%会被销毁
+     老年区存活几率高，不适合采用复制算法
+      其次，复制算法浪费一半的内存，这太要命了
+
+
+-->标记清理
+老年代，即养老区是标记清理和标记压缩的混合实现
+
+标记清理：算法分为标记和清理两个部分，先标记好要清理的对象，第二遍统一清理
+
+优点：不用像复制算法一样，浪费一半的内存
+缺点： 效率低，分为标记和清理两个操作，会产生内存碎片
+
+-->标记压缩
+老年代，即养老区是标记清理和标记压缩的混合实现
+
+标记压缩：分为标记和压缩两个部分，第一遍标记并清除，第二遍向一端滑动所有的存活对象
+
+优点：不用浪费内存，不会产生内存碎片
+缺点：效率更低，因为操作更多  标记-清除，压缩
+
+所以没有最好的，只有合适的
+
+---》GC总结
+
+内存效率：复制算法 > 标记清理 > 标记压缩
+内存整齐度：复制算法 = 标记压缩 > 标记清理
+内存利用率: 标记清理 = 标记压缩 > 复制算法
+
+
+
+
+
+
+
